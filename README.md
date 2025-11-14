@@ -10,3 +10,6 @@ curl -fsSL https://raw.githubusercontent.com/dim-ghub/Vapor/refs/heads/main/Inst
 Dependencies:
 
 `curl jq unrar python3 python3-venv tk`
+
+Obtain a morrenus api key at:
+https://manifest.morrenus.xyz/
