@@ -34,8 +34,8 @@ DEPOTDOWNLOADER_ARGS = "-max-downloads 256 -verify-all"
 DEFAULT_CONFIG = {
     "Github_Personal_Token": "",
     "Custom_Steam_Path": "",
-    "QA1": "温馨提示: Github_Personal_Token可在Github设置的最底下开发者选项找到, 详情看教程",
-    "教程": "https://ikunshare.com/Onekey_tutorial"
+    "QA1": "Friendly reminder: Github_Personal_Token can be found in Github settings at the bottom developer options, see tutorial for details",
+    "Tutorial": "https://ikunshare.com/Onekey_tutorial"
 }
 
 LOG_FORMAT = '%(log_color)s%(message)s'
@@ -48,7 +48,7 @@ LOG_COLORS = {
 
 
 def init_log(level=logging.DEBUG) -> logging.Logger:
-    """ 初始化日志模块 """
+    """ Initialize logging module """
     logger = logging.getLogger('Onekey')
     logger.setLevel(level)
 
@@ -68,7 +68,7 @@ log = init_log()
 
 
 def init():
-    """ 输出初始化信息 """
+    """ Output initialization information """
 #    banner_lines = [
 #        "                                                                   ",
 #        "░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░  ",
@@ -88,27 +88,27 @@ def init():
     log.warning('This project is licensed under the GNU General Public License v3 open-source license and may not be used for commercial purposes.')
 
 def stack_error(exception: Exception) -> str:
-    """ 处理错误堆栈 """
+    """ Process error stack trace """
     stack_trace = traceback.format_exception(
         type(exception), exception, exception.__traceback__)
     return ''.join(stack_trace)
 
 
 async def gen_config_file():
-    """ 生成配置文件 """
+    """ Generate configuration file """
     try:
         async with aiofiles.open("./config.json", mode="w", encoding="utf-8") as f:
             await f.write(json.dumps(DEFAULT_CONFIG, indent=2, ensure_ascii=False, escape_forward_slashes=False))
 
-        log.info('程序可能为第一次启动或配置重置,请填写配置文件后重新启动程序')
+        log.info('This may be the first run or configuration reset, please fill in the configuration file and restart the program')
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'配置文件生成失败,{stack_error(e)}')
+        log.error(f'Configuration file generation failed, {stack_error(e)}')
 
 
 async def load_config():
-    """ 加载配置文件 """
+    """ Load configuration file """
     if not os.path.exists('./config.json'):
         await gen_config_file()
         # input('Press Enter to exit...')
@@ -119,9 +119,9 @@ async def load_config():
             config = json.loads(await f.read())
             return config
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f"配置文件加载失败，原因: {stack_error(e)},重置配置文件中...")
+        log.error(f"Configuration file loading failed, reason: {stack_error(e)}, resetting configuration file...")
         os.remove("./config.json")
         await gen_config_file()
         # input('Press Enter to exit...')
@@ -131,10 +131,10 @@ config = asyncio.run(load_config())
 
 
 async def check_github_api_rate_limit(headers):
-    """ 检查Github请求数 """
+    """ Check Github request limit """
 
     if headers != None:
-        log.info(f"您已配置Github Token")
+        log.info(f"You have configured Github Token")
 
     url = 'https://api.github.com/rate_limit'
     try:
@@ -148,17 +148,17 @@ async def check_github_api_rate_limit(headers):
                 '%Y-%m-%d %H:%M:%S', time.localtime(reset_time))
             log.info(f'Number of requests remaining: {remaining_requests}')
             if remaining_requests == 0:
-                log.warning(f'GitHub API 请求数已用尽, 将在 {reset_time_formatted} 重置,建议生成一个填在配置文件里')
+                log.warning(f'GitHub API request limit exhausted, will reset at {reset_time_formatted}, it is recommended to generate one and fill it in the configuration file')
         else:
-            log.error('Github请求数检查失败, 网络错误')
+            log.error('Github request limit check failed, network error')
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except httpx.ConnectError as e:
-        log.error(f'检查Github API 请求数失败, {stack_error(e)}')
+        log.error(f'Failed to check Github API request limit, {stack_error(e)}')
     except httpx.ConnectTimeout as e:
-        log.error(f'检查Github API 请求数超时: {stack_error(e)}')
+        log.error(f'Timeout checking Github API request limit: {stack_error(e)}')
     except Exception as e:
-        log.error(f'发生错误: {stack_error(e)}')
+        log.error(f'An error occurred: {stack_error(e)}')
 
 
 async def checkcn() -> bool:
@@ -173,15 +173,15 @@ async def checkcn() -> bool:
             os.environ['IS_CN'] = 'yes'
             return True
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except httpx.ConnectError as e:
         os.environ['IS_CN'] = 'yes'
-        log.warning('检查服务器位置失败，已忽略，自动认为你在中国大陆')
+        log.warning('Failed to check server location, ignored, automatically assuming you are in mainland China')
         log.warning(stack_error(e))
         return False
     
 def csharp_gzip(b64_string):
-    # Base64 解码
+    # Base64 decode
     compressed_data = base64.b64decode(b64_string)
     
 
@@ -216,19 +216,19 @@ async def get(sha: str, path: str, repo: str):
                 if r.status_code == 200:
                     return r.read()
                 else:
-                    log.error(f'获取失败: {path} - 状态码: {r.status_code}')
+                    log.error(f'Fetch failed: {path} - Status code: {r.status_code}')
             except KeyboardInterrupt:
-                log.info("程序已退出")
+                log.info("Program exited")
             except httpx.ConnectError as e:
-                log.error(f'获取失败: {path} - 连接错误: {str(e)}')
+                log.error(f'Fetch failed: {path} - Connection error: {str(e)}')
             except httpx.ConnectTimeout as e:
-                log.error(f'连接超时: {url} - 错误: {str(e)}')
+                log.error(f'Connection timeout: {url} - Error: {str(e)}')
 
         retry -= 1
-        log.warning(f'重试剩余次数: {retry} - {path}')
+        log.warning(f'Retries remaining: {retry} - {path}')
 
-    log.error(f'超过最大重试次数: {path}')
-    raise Exception(f'无法下载: {path}')
+    log.error(f'Exceeded maximum retry attempts: {path}')
+    raise Exception(f'Unable to download: {path}')
 
 async def get_manifest(app_id: str, sha: str, path: str, repo: str) -> list:
     collected_depots = []
@@ -256,9 +256,9 @@ async def get_manifest(app_id: str, sha: str, path: str, repo: str) -> list:
                         else:
                             await f.write(f'{depot_id};{depot_info["DecryptionKey"]}\n')
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'处理失败: {path} - {stack_error(e)}')
+        log.error(f'Processing failed: {path} - {stack_error(e)}')
         raise
     return collected_depots
 
@@ -285,9 +285,9 @@ async def get_data(app_id: str, path: str, repo: str) -> list:
             collected_depots.append(filename)
         keyfile.close()
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'处理失败: {path} - {stack_error(e)}')
+        log.error(f'Processing failed: {path} - {stack_error(e)}')
         raise
     return collected_depots
 
@@ -298,7 +298,7 @@ async def get_data_local(app_id: str) -> list:
         lua_file_path = depot_cache_path / f"{app_id}.lua"
         st_file_path = depot_cache_path / f"{app_id}.st"
         if not lua_file_path.exists() and not st_file_path.exists():
-            log.error(f'未找到lua文件: {lua_file_path} 或 st文件: {st_file_path}')
+            log.error(f'Lua file not found: {lua_file_path} or st file: {st_file_path}')
             raise FileNotFoundError
         if lua_file_path.exists():
             luafile = await aiofiles.open(lua_file_path, 'r', encoding="utf-8")
@@ -309,22 +309,22 @@ async def get_data_local(app_id: str) -> list:
             stfile = await aiofiles.open(st_file_path, 'rb')
             content = await stfile.read()
             await stfile.close()
-            # 解析 header
+            # Parse header
             header = content[:12]
             xorkey, size, xorkeyverify = struct.unpack('III', header)
             xorkey ^= 0xFFFEA4C8
             xorkey &= 0xFF
-            # 解析 data
+            # Parse data
             data = bytearray(content[12:12+size])
             for i in range(len(data)):
                 data[i] = data[i] ^ xorkey
-            # 读取 data
+            # Read data
             decompressed_data = zlib.decompress(data)
             content = decompressed_data[512:].decode('utf-8')
             
 
         keyfile = await aiofiles.open(depot_cache_path / f"{app_id}.key", 'w', encoding="utf-8")
-        # 解析 addappid 和 setManifestid
+        # Parse addappid and setManifestid
         addappid_pattern = re.compile(r'addappid\(\s*(\d+)\s*(?:,\s*\d+\s*,\s*"([0-9a-f]+)"\s*)?\)')
         setmanifestid_pattern = re.compile(r'setManifestid\(\s*(\d+)\s*,\s*"(\d+)"\s*(?:,\s*\d+\s*)?\)')
 
@@ -332,7 +332,7 @@ async def get_data_local(app_id: str) -> list:
             depot_id = match.group(1)
             decrypt_key = match.group(2) if match.group(2) else None
             if decrypt_key:
-                log.info(f'解析到 addappid: depot_id={depot_id}, decrypt_key={decrypt_key}')
+                log.info(f'Parsed addappid: depot_id={depot_id}, decrypt_key={decrypt_key}')
                 await keyfile.write(f'{depot_id};{decrypt_key}\n')
 
         for match in setmanifestid_pattern.finditer(content):
@@ -340,17 +340,17 @@ async def get_data_local(app_id: str) -> list:
             manifest_id = match.group(2)
             filename = f"{depot_id}_{manifest_id}.manifest"
             save_path = depot_cache_path / filename
-            log.info(f'解析到 setManifestid: depot_id={depot_id}, manifest_id={manifest_id}')
+            log.info(f'Parsed setManifestid: depot_id={depot_id}, manifest_id={manifest_id}')
             if save_path.exists():
-                log.info(f'存在清单: {save_path}')
+                log.info(f'Manifest exists: {save_path}')
                 collected_depots.append(filename)
             else:
-                log.info(f'未找到清单: {save_path}')
+                log.info(f'Manifest not found: {save_path}')
             
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'处理失败: {stack_error(e)}')
+        log.error(f'Processing failed: {stack_error(e)}')
         raise
     return collected_depots
 
@@ -378,12 +378,12 @@ async def fetch_info(url, headers) -> str | None:
         r = await client.get(url, headers=headers)
         return r.json()
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'获取信息失败: {stack_error(e)}')
+        log.error(f'Failed to fetch information: {stack_error(e)}')
         return None
     except httpx.ConnectTimeout as e:
-        log.error(f'获取信息时超时: {stack_error(e)}')
+        log.error(f'Timeout fetching information: {stack_error(e)}')
         return None
     
 async def get_pro_token():
@@ -391,44 +391,44 @@ async def get_pro_token():
         r = await client.get("https://gitee.com/pjy612/sai/raw/master/free")
         return csharp_gzip(r.text)
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'获取信息失败: {stack_error(e)}')
+        log.error(f'Failed to fetch information: {stack_error(e)}')
         return None
     except httpx.ConnectTimeout as e:
-        log.error(f'获取信息时超时: {stack_error(e)}')
+        log.error(f'Timeout fetching information: {stack_error(e)}')
         return None
     
 async def symmetric_decrypt(key, ciphertext):
     """
-    使用AES解密数据
-    key: AES密钥字节串
-    ciphertext: 待解密的字节串,包含IV
+    Decrypt data using AES
+    key: AES key byte string
+    ciphertext: Byte string to be decrypted, including IV
     """
     try:
-    # 分离IV和加密数据
+    # Separate IV and encrypted data
         iv = ciphertext[:AES.block_size]
         data = ciphertext[AES.block_size:]
         
-        # 使用ECB模式解密IV
+        # Decrypt IV using ECB mode
         cipher_ecb = AES.new(key, AES.MODE_ECB)
         iv = cipher_ecb.decrypt(iv)
         
-        # 使用CBC模式和解密后的IV解密数据
+        # Decrypt data using CBC mode with decrypted IV
         cipher_cbc = AES.new(key, AES.MODE_CBC, iv)
         decrypted = cipher_cbc.decrypt(data)
         
-        # 去除PKCS7填充
+        # Remove PKCS7 padding
         return unpad(decrypted, AES.block_size)
     except Exception as e:
-        log.error(f'解密失败: {stack_error(e)}')
+        log.error(f'Decryption failed: {stack_error(e)}')
         return None
 
 async def xor_decrypt(key, ciphertext):
     """
-    使用异或解密数据
-    key: 异或密钥字节串
-    ciphertext: 待解密的字节串
+    Decrypt data using XOR
+    key: XOR key byte string
+    ciphertext: Byte string to be decrypted
     """
     try:
         decrypted = bytearray(len(ciphertext))
@@ -436,7 +436,7 @@ async def xor_decrypt(key, ciphertext):
             decrypted[i] = ciphertext[i] ^ key[i % len(key)]
         return bytes(decrypted)
     except Exception as e:
-        log.error(f'解密失败: {stack_error(e)}')
+        log.error(f'Decryption failed: {stack_error(e)}')
         return None
 
 async def get_latest_repo_info(repos: list, app_id: str, headers) -> Any | None:
@@ -468,7 +468,7 @@ async def printedwaste_download(app_id: str) -> bool:
     try:
         r = await client.get(url, headers=headers, timeout=60)
         r.raise_for_status()
-        content = await r.aread()  # 异步读取全部内容
+        content = await r.aread()  # Asynchronously read all content
         
         import io, zipfile
         zip_mem = io.BytesIO(content)
@@ -476,21 +476,21 @@ async def printedwaste_download(app_id: str) -> bool:
             for file in zf.namelist():
                 if file.endswith(('.st', '.lua', '.manifest')):
                     file_content = zf.read(file)
-                    log.info(f"解压文件: {file}，大小: {len(file_content)} 字节")    
+                    log.info(f"Extracting file: {file}, size: {len(file_content)} bytes")    
                     async with aiofiles.open(depot_cache_path / Path(file).name, 'wb') as f:
                         await f.write(file_content)        
         return True
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            log.error("未找到清单")
+            log.error("Manifest not found")
             return False
         else:
-            log.error(f'处理失败: {stack_error(e)}')
+            log.error(f'Processing failed: {stack_error(e)}')
             raise
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'处理失败: {stack_error(e)}')
+        log.error(f'Processing failed: {stack_error(e)}')
         raise
 
 async def gdata_download(app_id: str) -> bool:
@@ -499,7 +499,7 @@ async def gdata_download(app_id: str) -> bool:
     try:
         r = await client.get(url, timeout=60)
         r.raise_for_status()
-        content = await r.aread()  # 异步读取全部内容
+        content = await r.aread()  # Asynchronously read all content
         
         import io, zipfile
         zip_mem = io.BytesIO(content)
@@ -507,21 +507,21 @@ async def gdata_download(app_id: str) -> bool:
             for file in zf.namelist():
                 if file.endswith(('.st', '.lua', '.manifest')):
                     file_content = zf.read(file)
-                    log.info(f"解压文件: {file}，大小: {len(file_content)} 字节")    
+                    log.info(f"Extracting file: {file}, size: {len(file_content)} bytes")    
                     async with aiofiles.open(depot_cache_path / Path(file).name, 'wb') as f:
                         await f.write(file_content)        
         return True
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            log.error("未找到清单")
+            log.error("Manifest not found")
             return False
         else:
-            log.error(f'处理失败: {stack_error(e)}')
+            log.error(f'Processing failed: {stack_error(e)}')
             raise
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'处理失败: {stack_error(e)}')
+        log.error(f'Processing failed: {stack_error(e)}')
         raise
 
 async def cysaw_download(app_id: str) -> bool:
@@ -533,7 +533,7 @@ async def cysaw_download(app_id: str) -> bool:
     try:
         r = await client.get(url, headers=headers, timeout=60)
         r.raise_for_status()
-        content = await r.aread()  # 异步读取全部内容
+        content = await r.aread()  # Asynchronously read all content
         
         import io, zipfile
         zip_mem = io.BytesIO(content)
@@ -541,30 +541,30 @@ async def cysaw_download(app_id: str) -> bool:
             for file in zf.namelist():
                 if file.endswith(('.st', '.lua', '.manifest')):
                     file_content = zf.read(file)
-                    log.info(f"解压文件: {file}，大小: {len(file_content)} 字节")    
+                    log.info(f"Extracting file: {file}, size: {len(file_content)} bytes")    
                     async with aiofiles.open(depot_cache_path / Path(file).name, 'wb') as f:
                         await f.write(file_content)        
         return True
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 404:
-            log.error("未找到清单")
+            log.error("Manifest not found")
             return False
         if e.response.status_code == 403:
-            log.error("清单403")
+            log.error("Manifest 403")
             return False
         else:
-            log.error(f'处理失败: {stack_error(e)}')
+            log.error(f'Processing failed: {stack_error(e)}')
             raise
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except Exception as e:
-        log.error(f'处理失败: {stack_error(e)}')
+        log.error(f'Processing failed: {stack_error(e)}')
         raise
 
 async def main(app_id: str, repos: list) -> bool:
     app_id_list = list(filter(str.isdecimal, app_id.strip().split('-')))
     if not app_id_list:
-        log.error(f'App ID无效')
+        log.error(f'Invalid App ID')
         return False
     app_id = app_id_list[0]
     github_token = config.get("Github_Personal_Token", "")
@@ -578,7 +578,7 @@ async def main(app_id: str, repos: list) -> bool:
                 manifests = await get_data_local(app_id)
                 await depotdownloadermod_add(app_id, manifests)
                 log.info('Download files have been added.')
-                # log.info(f'清单最后更新时间: {latest_date}')
+                # log.info(f'Manifest last updated: {latest_date}')
                 log.info(f'Import successful: {app_id}')
                 await client.aclose()
                 # input('Press Enter to exit...')
@@ -588,7 +588,7 @@ async def main(app_id: str, repos: list) -> bool:
                     manifests = await get_data_local(app_id)
                     await depotdownloadermod_add(app_id, manifests)
                     log.info('Download files have been added.')
-                    # log.info(f'清单最后更新时间: {latest_date}')
+                    # log.info(f'Manifest last updated: {latest_date}')
                     log.info(f'Import successful: {app_id}')
                     await client.aclose()
                     # input('Press Enter to exit...')
@@ -598,7 +598,7 @@ async def main(app_id: str, repos: list) -> bool:
                     manifests = await get_data_local(app_id)
                     await depotdownloadermod_add(app_id, manifests)
                     log.info('Download files have been added.')
-                    # log.info(f'清单最后更新时间: {latest_date}')
+                    # log.info(f'Manifest last updated: {latest_date}')
                     log.info(f'Import successful: {app_id}')
                     await client.aclose()
                     # input('Press Enter to exit...')
@@ -608,7 +608,7 @@ async def main(app_id: str, repos: list) -> bool:
                     manifests = await get_data_local(app_id)
                     await depotdownloadermod_add(app_id, manifests)
                     log.info('Download files have been added.')
-                    # log.info(f'清单最后更新时间: {latest_date}')
+                    # log.info(f'Manifest last updated: {latest_date}')
                     log.info(f'Import successful: {app_id}')
                     await client.aclose()
                     # input('Press Enter to exit...')
@@ -623,7 +623,7 @@ async def main(app_id: str, repos: list) -> bool:
                     manifests = await get_data(app_id, path, selected_repo)
                     await depotdownloadermod_add(app_id, manifests)
                     log.info('Download files have been added.')
-                    # log.info(f'清单最后更新时间: {latest_date}')
+                    # log.info(f'Manifest last updated: {latest_date}')
                     log.info(f'Import successful: {app_id}')
                     await client.aclose()
                     # input('Press Enter to exit...')
@@ -643,37 +643,37 @@ async def main(app_id: str, repos: list) -> bool:
                             await get_manifest(app_id, sha, item['path'], selected_repo)
                         await depotdownloadermod_add(app_id, manifests)
                         log.info('Download files have been added.')
-                        # log.info(f'清单最后更新时间: {latest_date}')
+                        # log.info(f'Manifest last updated: {latest_date}')
                         log.info(f'Import successful: {app_id}')
                         await client.aclose()
                         # input('Press Enter to exit...')
                         return True
         except Exception as e:
-            log.error(f'处理失败: {stack_error(e)}')
-        log.error(f'未找到清单: {app_id}')
-    log.error(f'清单下载或生成失败: {app_id}')
+            log.error(f'Processing failed: {stack_error(e)}')
+        log.error(f'Manifest not found: {app_id}')
+    log.error(f'Manifest download or generation failed: {app_id}')
     await client.aclose()
     # input('Press Enter to exit...')
     return False
 
 def select_repo(repos):
-    print(f"\n{Fore.YELLOW}{Back.BLACK}{Style.BRIGHT}请选择要使用的存储库：{Style.RESET_ALL}")
-    print(f"{Fore.GREEN}1. 全部仓库{Style.RESET_ALL}")
+    print(f"\n{Fore.YELLOW}{Back.BLACK}{Style.BRIGHT}Please select the repository to use:{Style.RESET_ALL}")
+    print(f"{Fore.GREEN}1. All repositories{Style.RESET_ALL}")
     for i, repo in enumerate(repos, 2):
         print(f"{Fore.GREEN}{i}. {repo}{Style.RESET_ALL}")
     
     while True:
         try:
-            choice = int(input(f"\n{Fore.CYAN}请输入数字选择: {Style.RESET_ALL}"))
+            choice = int(input(f"\n{Fore.CYAN}Please enter a number to select: {Style.RESET_ALL}"))
             if 1 <= choice <= len(repos) + 1:
                 if choice == 1:
                     return repos
                 else:
                     return [repos[choice-2]]
             else:
-                print(f"{Fore.RED}无效的选择，请重试{Style.RESET_ALL}")
+                print(f"{Fore.RED}Invalid selection, please try again{Style.RESET_ALL}")
         except ValueError:
-            print(f"{Fore.RED}请输入有效的数字{Style.RESET_ALL}")
+            print(f"{Fore.RED}Please enter a valid number{Style.RESET_ALL}")
 
 if __name__ == '__main__':
     from modules import morrenus  # import your Morrenus module
@@ -697,7 +697,7 @@ if __name__ == '__main__':
         # Parse AppID from command line
         import sys
         if len(sys.argv) < 2:
-            log.error("请提供游戏AppID，例如: ./downloaddepot.sh 123456")
+            log.error("Please provide game AppID, for example: ./downloaddepot.sh 123456")
             sys.exit(1)
 
         app_id = sys.argv[1].strip()
@@ -715,6 +715,6 @@ if __name__ == '__main__':
         asyncio.run(main(app_id, selected_repos))
 
     except KeyboardInterrupt:
-        log.info("程序已退出")
+        log.info("Program exited")
     except SystemExit:
         sys.exit()
