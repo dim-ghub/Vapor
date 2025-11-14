@@ -42,7 +42,7 @@ if [ -f "$DESKTOP_FILE" ]; then
     # Move desktop file to applications directory
     echo "Installing desktop shortcut..."
     mkdir -p "$APPLICATIONS_DIR"
-    cp "$DESKTOP_FILE" "$APPLICATIONS_DIR/"
+    mv "$DESKTOP_FILE" "$APPLICATIONS_DIR/"
     chmod +x "$APPLICATIONS_DIR/$(basename "$DESKTOP_FILE")"
 else
     echo "Warning: $DESKTOP_FILE not found, skipping desktop file edit."
