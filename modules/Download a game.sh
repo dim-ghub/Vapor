@@ -134,7 +134,7 @@ if [[ -f "$SH_FILE" ]]; then
     bash "$SH_FILE"
     echo "===== Download complete, cleaning up temporary files ====="
     rm -f "$SH_FILE"
-    rm -f *.manifest *.key
+    rm -f *.manifest *.key *.lua
     echo "===== Cleanup complete ====="
 else
     echo "Error: Generated script $SH_FILE not found."
