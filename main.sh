@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
+# Function to print text column by column
 type_column_by_column() {
     local text="$1"
     local delay="${2:-0.01}"
@@ -15,6 +16,25 @@ type_column_by_column() {
     done
 }
 
+# --- SOUND FUNCTIONS ---
+play_select_sound() {
+    mpv --no-video --quiet --no-terminal ~/.local/share/Vapor/assets/select.mp3 &
+}
+
+start_theme_loop() {
+    while true; do
+        mpv --no-video --quiet --no-terminal ~/.local/share/Vapor/assets/theme.mp3
+    done &
+    THEME_PID=$!
+}
+
+stop_theme_loop() {
+    if [[ -n "$THEME_PID" ]]; then
+        kill "$THEME_PID" 2>/dev/null || true
+    fi
+}
+
+# First huge banner
 mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
 sleep 0.5
 cat <<'EOF'
@@ -33,6 +53,7 @@ EOF
 sleep 1.5
 clear
 
+# Second smaller banner
 mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
 sleep 0.5
 cat <<'EOF'
@@ -50,6 +71,7 @@ EOF
 sleep 1.5
 clear
 
+# Final banner
 FINAL_BANNER='░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░  
 ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
  ░▒▓█▓▒▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
@@ -80,6 +102,7 @@ done
 echo "======================================"
 
 read -rp "Select an option: " opt
+play_select_sound
 
 if ! [[ "$opt" =~ ^[0-9]+$ ]] || ((opt < 1 || opt > ${#MODULES[@]})); then
     echo "Invalid option"
@@ -87,8 +110,20 @@ if ! [[ "$opt" =~ ^[0-9]+$ ]] || ((opt < 1 || opt > ${#MODULES[@]})); then
 fi
 
 SELECTED_MODULE="${MODULES[opt-1]}"
-echo "Running $(basename "$SELECTED_MODULE")..."
+MODULE_NAME=$(basename "$SELECTED_MODULE")
+
+echo "Running $MODULE_NAME..."
+
+# If this is the download module → start theme music
+if [[ "$MODULE_NAME" == "Download a game.sh" ]]; then
+    start_theme_loop
+fi
+
+# Run the module
 bash "$SELECTED_MODULE"
+
+# Stop looping theme (if running)
+stop_theme_loop
 
 echo
 read -rp "Press Enter to exit..."
