@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-# Function to print text column by column
 type_column_by_column() {
     local text="$1"
     local delay="${2:-0.01}"
@@ -16,7 +15,6 @@ type_column_by_column() {
     done
 }
 
-# First huge banner
 mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
 sleep 0.5
 cat <<'EOF'
@@ -35,7 +33,6 @@ EOF
 sleep 1.5
 clear
 
-# Second smaller banner
 mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
 sleep 0.5
 cat <<'EOF'
@@ -53,7 +50,6 @@ EOF
 sleep 1.5
 clear
 
-# Final banner (typed column by column)
 FINAL_BANNER='░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░  
 ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
  ░▒▓█▓▒▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
