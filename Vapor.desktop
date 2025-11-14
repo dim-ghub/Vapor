@@ -1,8 +1,15 @@
 [Desktop Entry]
-Name=Vapor
+Categories=Game;Utility;
 Comment=Collection of tools for Steam
 Exec=
-Icon=steam
-Terminal=false
+Icon=
+Name=Vapor
+NoDisplay=false
+Path=
+PrefersNonDefaultGPU=false
+StartupNotify=true
+Terminal=true
+TerminalOptions=
 Type=Application
-Categories=Game;Utility;
+X-KDE-SubstituteUID=false
+X-KDE-Username=
