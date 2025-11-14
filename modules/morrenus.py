@@ -2,48 +2,27 @@
 import asyncio
 import httpx
 import aiofiles
-import json
 import os
 import zipfile
 from pathlib import Path
 from colorama import Fore
-from getpass import getpass
 
 client = httpx.AsyncClient(verify=False)
 SOURCE_DIR = Path.cwd()
 
-async def save_api_key(api_key: str, password: str | None):
-    """Save API key, optionally encrypted."""
+async def save_api_key(api_key: str):
+    """Save API key in plaintext (no password needed)."""
     key_path = SOURCE_DIR / "morrenus_key.enc"
-    if password:
-        from Crypto.Cipher import AES
-        from Crypto.Util.Padding import pad
-        iv = os.urandom(16)
-        cipher = AES.new(password.encode('utf-8').ljust(32, b'\0')[:32], AES.MODE_CBC, iv)
-        ciphertext = cipher.encrypt(pad(api_key.encode('utf-8'), AES.block_size))
-        async with aiofiles.open(key_path, "wb") as f:
-            await f.write(iv + ciphertext)
-    else:
-        async with aiofiles.open(key_path, "w") as f:
-            await f.write(api_key)
+    async with aiofiles.open(key_path, "w") as f:
+        await f.write(api_key)
     return key_path
 
-async def load_api_key(password: str | None) -> str | None:
+async def load_api_key() -> str | None:
     key_path = SOURCE_DIR / "morrenus_key.enc"
     if not key_path.exists():
         return None
-    if password:
-        from Crypto.Cipher import AES
-        from Crypto.Util.Padding import unpad
-        async with aiofiles.open(key_path, "rb") as f:
-            data = await f.read()
-        iv = data[:16]
-        ciphertext = data[16:]
-        cipher = AES.new(password.encode('utf-8').ljust(32, b'\0')[:32], AES.MODE_CBC, iv)
-        return unpad(cipher.decrypt(ciphertext), AES.block_size).decode('utf-8')
-    else:
-        async with aiofiles.open(key_path, "r") as f:
-            return await f.read()
+    async with aiofiles.open(key_path, "r") as f:
+        return await f.read()
 
 async def check_health() -> bool:
     url = "https://manifest.morrenus.xyz/api/v1/health"
@@ -101,25 +80,38 @@ async def download_manifest(api_key: str, app_id: str):
     return True
 
 async def morrenus_fetch(app_id: str) -> bool:
-    password = getpass("Enter password to encrypt API key (leave empty to store plaintext): ")
-    api_key = await load_api_key(password)
+    # Load API key if previously saved
+    api_key = await load_api_key()
+
     if not api_key:
-        api_key = input("Enter your Morrenus API key: ").strip()
+        api_key = input("Enter your Morrenus API key (leave empty to skip Morrenus): ").strip()
+        if not api_key:
+            print(f"{Fore.YELLOW}Skipping Morrenus as no API key provided.")
+            return False
+
+        # Ask for password only if API key is provided
+        from getpass import getpass
+        password = getpass("Enter password to encrypt API key (leave empty to store plaintext): ")
         await save_api_key(api_key, password)
+
     if not await check_health():
         print(f"{Fore.RED}Morrenus API is down. Falling back to local repos.")
         return False
+
     uses_left = await get_usage(api_key)
     if uses_left == "unauthorized":
         print(f"{Fore.RED}API key unauthorized. Please enter a new key.")
         os.remove(SOURCE_DIR / "morrenus_key.enc")
         return await morrenus_fetch(app_id)
+
     print(f"Morrenus uses left today: {uses_left}")
+
     status = await check_appid(api_key, app_id)
     if status == "unauthorized":
         print(f"{Fore.RED}API key unauthorized. Please enter a new key.")
         os.remove(SOURCE_DIR / "morrenus_key.enc")
         return await morrenus_fetch(app_id)
+
     if status:
         print(f"{Fore.GREEN}AppID {app_id} is available on Morrenus. Downloading...")
         success = await download_manifest(api_key, app_id)
