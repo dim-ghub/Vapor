@@ -22,8 +22,7 @@ fi
 
 # 2. Download DepotDownloaderMod directly
 echo "Downloading DepotDownloaderMod..."
-DEPOTDOWNLOADER_URL="https://github.com/dim-ghub/Vapor/releases/download/Binaries/DepotDownloaderMod"
-curl -L "$DEPOTDOWNLOADER_URL" -o "$INSTALL_DIR/DepotDownloaderMod"
+curl -L "https://github.com/dim-ghub/Vapor/releases/download/Binaries/DepotDownloaderMod" -o "$HOME/.local/share/Vapor/DepotDownloaderMod"
 
 if [ ! -s "$INSTALL_DIR/DepotDownloaderMod" ]; then
     echo "Error: Failed to download DepotDownloaderMod"
