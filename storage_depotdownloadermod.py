@@ -20,6 +20,7 @@ from pathlib import Path
 from colorama import init, Fore, Back, Style
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
+from modules import morrenus
 
 init()
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -675,6 +676,8 @@ def select_repo(repos):
             print(f"{Fore.RED}请输入有效的数字{Style.RESET_ALL}")
 
 if __name__ == '__main__':
+    from modules import morrenus  # import your Morrenus module
+
     init()
     try:
         repos = [
@@ -699,10 +702,16 @@ if __name__ == '__main__':
 
         app_id = sys.argv[1].strip()
 
-        # Always use the first option: 全部仓库
-        selected_repos = repos
+        # First try Morrenus API
+        if asyncio.run(morrenus.morrenus_fetch(app_id)):
+            # Successfully downloaded from Morrenus, import local files
+            manifests = asyncio.run(get_data_local(app_id))
+            asyncio.run(depotdownloadermod_add(app_id, manifests))
+            log.info(f"Import successful: {app_id} (from Morrenus)")
+            sys.exit(0)  # exit after success
 
-        # Run main async function
+        # If Morrenus failed or unavailable, fallback to repos
+        selected_repos = repos
         asyncio.run(main(app_id, selected_repos))
 
     except KeyboardInterrupt:
