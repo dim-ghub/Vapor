@@ -10,3 +10,5 @@ curl -fsSL https://raw.githubusercontent.com/dim-ghub/Vapor/refs/heads/main/Inst
 Dependencies:
 
 `curl jq unrar python3 python3-venv wine zenity yad tk`
+
+## INCOMING REWRITE, DROPPING LOTS OF FEATURES
