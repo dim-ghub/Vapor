@@ -529,25 +529,6 @@ async def main(app_id: str, repos: list) -> bool:
     await client.aclose()
     return False
 
-def select_repo(repos):
-    print(f"\n{Fore.YELLOW}{Back.BLACK}{Style.BRIGHT}Please select the repository to use:{Style.RESET_ALL}")
-    print(f"{Fore.GREEN}1. All repositories{Style.RESET_ALL}")
-    for i, repo in enumerate(repos, 2):
-        print(f"{Fore.GREEN}{i}. {repo}{Style.RESET_ALL}")
-    
-    while True:
-        try:
-            choice = int(input(f"\n{Fore.CYAN}Please enter a number to select: {Style.RESET_ALL}"))
-            if 1 <= choice <= len(repos) + 1:
-                if choice == 1:
-                    return repos
-                else:
-                    return [repos[choice-2]]
-            else:
-                print(f"{Fore.RED}Invalid selection, please try again{Style.RESET_ALL}")
-        except ValueError:
-            print(f"{Fore.RED}Please enter a valid number{Style.RESET_ALL}")
-
 if __name__ == '__main__':
     init()
     try:
