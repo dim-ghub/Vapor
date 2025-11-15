@@ -69,20 +69,6 @@ log = init_log()
 
 def init():
     """ Output initialization information """
-#    banner_lines = [
-#        "                                                                   ",
-#        "░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░  ",
-#        "░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ ",
-#        " ░▒▓█▓▒▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ ",
-#        " ░▒▓█▓▒▒▓█▓▒░░▒▓████████▓▒░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓███████▓▒░  ",
-#        "  ░▒▓█▓▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ ",
-#        "  ░▒▓█▓▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ ",
-#        "   ░▒▓██▓▒░  ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░       ░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░ ",
-#        "                                                                   ",
-#    ]
-#    for line in banner_lines:
-#        log.info(line)
-
     log.info('DepotDownloadermod')
     log.info('Original author: oureveryday | Edited by: DiM')
     log.warning('This project is licensed under the GNU General Public License v3 open-source license and may not be used for commercial purposes.')
@@ -111,7 +97,6 @@ async def load_config():
     """ Load configuration file """
     if not os.path.exists('./config.json'):
         await gen_config_file()
-        # input('Press Enter to exit...')
         sys.exit()
 
     try:
@@ -124,7 +109,6 @@ async def load_config():
         log.error(f"Configuration file loading failed, reason: {stack_error(e)}, resetting configuration file...")
         os.remove("./config.json")
         await gen_config_file()
-        # input('Press Enter to exit...')
         sys.exit()
 
 config = asyncio.run(load_config())
@@ -159,26 +143,6 @@ async def check_github_api_rate_limit(headers):
         log.error(f'Timeout checking Github API request limit: {stack_error(e)}')
     except Exception as e:
         log.error(f'An error occurred: {stack_error(e)}')
-
-
-async def checkcn() -> bool:
-    try:
-        req = await client.get('https://mips.kugou.com/check/iscn?&format=json')
-        body = req.json()
-        scn = bool(body['flag'])
-        if (not scn):
-            os.environ['IS_CN'] = 'no'
-            return False
-        else:
-            os.environ['IS_CN'] = 'yes'
-            return True
-    except KeyboardInterrupt:
-        log.info("Program exited")
-    except httpx.ConnectError as e:
-        os.environ['IS_CN'] = 'yes'
-        log.warning('Failed to check server location, ignored, automatically assuming you are in mainland China')
-        log.warning(stack_error(e))
-        return False
     
 def csharp_gzip(b64_string):
     # Base64 decode
@@ -196,18 +160,9 @@ def csharp_gzip(b64_string):
     return decompressed_data.decode('utf-8')
 
 async def get(sha: str, path: str, repo: str):
-    if os.environ.get('IS_CN') == 'yes':
-        url_list = [
-            f'https://jsdelivr.pai233.top/gh/{repo}@{sha}/{path}',
-            f'https://cdn.jsdmirror.com/gh/{repo}@{sha}/{path}',
-            f'https://raw.gitmirror.com/{repo}/{sha}/{path}',
-            f'https://raw.dgithub.xyz/{repo}/{sha}/{path}',
-            f'https://gh.akass.cn/{repo}/{sha}/{path}'
-        ]
-    else:
-        url_list = [
-            f'https://raw.githubusercontent.com/{repo}/{sha}/{path}'
-        ]
+    url_list = [
+        f'https://raw.githubusercontent.com/{repo}/{sha}/{path}'
+    ]
     retry = 3
     while retry > 0:
         for url in url_list:
@@ -493,74 +448,6 @@ async def printedwaste_download(app_id: str) -> bool:
         log.error(f'Processing failed: {stack_error(e)}')
         raise
 
-async def gdata_download(app_id: str) -> bool:
-    url = f"https://steambox.gdata.fun/cnhz/qingdan/{app_id}.zip"
-    depot_cache_path = Path(os.getcwd())
-    try:
-        r = await client.get(url, timeout=60)
-        r.raise_for_status()
-        content = await r.aread()  # Asynchronously read all content
-        
-        import io, zipfile
-        zip_mem = io.BytesIO(content)
-        with zipfile.ZipFile(zip_mem) as zf:
-            for file in zf.namelist():
-                if file.endswith(('.st', '.lua', '.manifest')):
-                    file_content = zf.read(file)
-                    log.info(f"Extracting file: {file}, size: {len(file_content)} bytes")    
-                    async with aiofiles.open(depot_cache_path / Path(file).name, 'wb') as f:
-                        await f.write(file_content)        
-        return True
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            log.error("Manifest not found")
-            return False
-        else:
-            log.error(f'Processing failed: {stack_error(e)}')
-            raise
-    except KeyboardInterrupt:
-        log.info("Program exited")
-    except Exception as e:
-        log.error(f'Processing failed: {stack_error(e)}')
-        raise
-
-async def cysaw_download(app_id: str) -> bool:
-    url = f"https://cysaw.top/uploads/{app_id}.zip"
-    depot_cache_path = Path(os.getcwd())
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-    }
-    try:
-        r = await client.get(url, headers=headers, timeout=60)
-        r.raise_for_status()
-        content = await r.aread()  # Asynchronously read all content
-        
-        import io, zipfile
-        zip_mem = io.BytesIO(content)
-        with zipfile.ZipFile(zip_mem) as zf:
-            for file in zf.namelist():
-                if file.endswith(('.st', '.lua', '.manifest')):
-                    file_content = zf.read(file)
-                    log.info(f"Extracting file: {file}, size: {len(file_content)} bytes")    
-                    async with aiofiles.open(depot_cache_path / Path(file).name, 'wb') as f:
-                        await f.write(file_content)        
-        return True
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code == 404:
-            log.error("Manifest not found")
-            return False
-        if e.response.status_code == 403:
-            log.error("Manifest 403")
-            return False
-        else:
-            log.error(f'Processing failed: {stack_error(e)}')
-            raise
-    except KeyboardInterrupt:
-        log.info("Program exited")
-    except Exception as e:
-        log.error(f'Processing failed: {stack_error(e)}')
-        raise
-
 async def main(app_id: str, repos: list) -> bool:
     app_id_list = list(filter(str.isdecimal, app_id.strip().split('-')))
     if not app_id_list:
@@ -581,40 +468,32 @@ async def main(app_id: str, repos: list) -> bool:
                 # log.info(f'Manifest last updated: {latest_date}')
                 log.info(f'Import successful: {app_id}')
                 await client.aclose()
-                # input('Press Enter to exit...')
                 return True
             elif selected_repo == 'PrintedWaste':
                 if(await printedwaste_download(app_id)):
                     manifests = await get_data_local(app_id)
                     await depotdownloadermod_add(app_id, manifests)
                     log.info('Download files have been added.')
-                    # log.info(f'Manifest last updated: {latest_date}')
                     log.info(f'Import successful: {app_id}')
                     await client.aclose()
-                    # input('Press Enter to exit...')
                     return True
             elif selected_repo == 'steambox.gdata.fun':
                 if(await gdata_download(app_id)):
                     manifests = await get_data_local(app_id)
                     await depotdownloadermod_add(app_id, manifests)
                     log.info('Download files have been added.')
-                    # log.info(f'Manifest last updated: {latest_date}')
                     log.info(f'Import successful: {app_id}')
                     await client.aclose()
-                    # input('Press Enter to exit...')
                     return True
             elif selected_repo == 'cysaw.top':
                 if(await cysaw_download(app_id)):
                     manifests = await get_data_local(app_id)
                     await depotdownloadermod_add(app_id, manifests)
                     log.info('Download files have been added.')
-                    # log.info(f'Manifest last updated: {latest_date}')
                     log.info(f'Import successful: {app_id}')
                     await client.aclose()
-                    # input('Press Enter to exit...')
                     return True
             elif selected_repo == 'luckygametools/steam-cfg': 
-                await checkcn()
                 await check_github_api_rate_limit(headers)
                 url = f'https://api.github.com/repos/{selected_repo}/contents/steamdb2/{app_id}'
                 r_json = await fetch_info(url, headers)
@@ -623,13 +502,10 @@ async def main(app_id: str, repos: list) -> bool:
                     manifests = await get_data(app_id, path, selected_repo)
                     await depotdownloadermod_add(app_id, manifests)
                     log.info('Download files have been added.')
-                    # log.info(f'Manifest last updated: {latest_date}')
                     log.info(f'Import successful: {app_id}')
                     await client.aclose()
-                    # input('Press Enter to exit...')
                     return True
             else:
-                await checkcn()
                 await check_github_api_rate_limit(headers)
                 url = f'https://api.github.com/repos/{selected_repo}/branches/{app_id}'
                 r_json = await fetch_info(url, headers)
@@ -643,17 +519,14 @@ async def main(app_id: str, repos: list) -> bool:
                             await get_manifest(app_id, sha, item['path'], selected_repo)
                         await depotdownloadermod_add(app_id, manifests)
                         log.info('Download files have been added.')
-                        # log.info(f'Manifest last updated: {latest_date}')
                         log.info(f'Import successful: {app_id}')
                         await client.aclose()
-                        # input('Press Enter to exit...')
                         return True
         except Exception as e:
             log.error(f'Processing failed: {stack_error(e)}')
         log.error(f'Manifest not found: {app_id}')
     log.error(f'Manifest download or generation failed: {app_id}')
     await client.aclose()
-    # input('Press Enter to exit...')
     return False
 
 def select_repo(repos):
@@ -676,8 +549,6 @@ def select_repo(repos):
             print(f"{Fore.RED}Please enter a valid number{Style.RESET_ALL}")
 
 if __name__ == '__main__':
-    from modules import morrenus  # import your Morrenus module
-
     init()
     try:
         repos = [
@@ -694,7 +565,6 @@ if __name__ == '__main__':
             'Steam tools .lua/.st script (Local file)'
         ]
 
-        # Parse AppID from command line
         import sys
         if len(sys.argv) < 2:
             log.error("Please provide game AppID, for example: ./downloaddepot.sh 123456")
@@ -702,15 +572,12 @@ if __name__ == '__main__':
 
         app_id = sys.argv[1].strip()
 
-        # First try Morrenus API
         if asyncio.run(morrenus.morrenus_fetch(app_id)):
-            # Successfully downloaded from Morrenus, import local files
             manifests = asyncio.run(get_data_local(app_id))
             asyncio.run(depotdownloadermod_add(app_id, manifests))
             log.info(f"Import successful: {app_id} (from Morrenus)")
             sys.exit(0)  # exit after success
 
-        # If Morrenus failed or unavailable, fallback to repos
         selected_repos = repos
         asyncio.run(main(app_id, selected_repos))
 
