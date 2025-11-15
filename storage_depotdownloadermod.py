@@ -33,9 +33,6 @@ DEPOTDOWNLOADER_ARGS = "-max-downloads 256 -verify-all"
 
 DEFAULT_CONFIG = {
     "Github_Personal_Token": "",
-    "Custom_Steam_Path": "",
-    "QA1": "Friendly reminder: Github_Personal_Token can be found in Github settings at the bottom developer options, see tutorial for details",
-    "Tutorial": "https://ikunshare.com/Onekey_tutorial"
 }
 
 LOG_FORMAT = '%(log_color)s%(message)s'
@@ -314,7 +311,6 @@ async def depotdownloadermod_add(app_id: str, manifests: list) -> bool:
         log.info(f'DepotDownloaderMod download script generation: {app_id}.sh')
         try:
             async with aiofiles.open(f'{app_id}.sh', mode="w", encoding="utf-8") as sh_file:
-                # Shebang for Linux
                 await sh_file.write("#!/usr/bin/env bash\n\n")
                 for manifest in manifests:
                     depot_id = manifest[0:manifest.find('_')]
