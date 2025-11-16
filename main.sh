@@ -3,7 +3,7 @@ set -e
 clear
 
 CONFIG_DIR="$HOME/.local/share/Vapor"
-CONFIG_FILE="$CONFIG_DIR/config.json"
+CONFIG_FILE="$CONFIG_DIR/vapor-conf.json"
 
 # ------------------------------------------------------------
 # CONFIG HANDLING
