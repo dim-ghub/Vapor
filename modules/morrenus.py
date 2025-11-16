@@ -7,22 +7,100 @@ import zipfile
 from pathlib import Path
 from colorama import Fore
 
+# Crypto imports for encryption
+from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Random import get_random_bytes
+import base64
+import json
+
 client = httpx.AsyncClient(verify=False)
 SOURCE_DIR = Path.cwd()
 
-async def save_api_key(api_key: str):
-    """Save API key in plaintext (no password needed)."""
+# =============================================================================
+# SAVE / LOAD API KEY (patched)
+# =============================================================================
+
+async def save_api_key(api_key: str, password: str | None = None):
+    """
+    Save API key encrypted with AES-256 when password is provided.
+    Store plaintext when password is empty.
+    """
     key_path = SOURCE_DIR / "morrenus_key.enc"
+
+    # ---- PLAINTEXT MODE ----
+    if not password:
+        async with aiofiles.open(key_path, "w") as f:
+            await f.write(api_key)
+        return key_path
+
+    # ---- ENCRYPTED MODE ----
+    salt = get_random_bytes(16)
+    aes_key = PBKDF2(password, salt, dkLen=32, count=200000)
+
+    iv = get_random_bytes(16)
+    cipher = AES.new(aes_key, AES.MODE_CBC, iv)
+
+    # PKCS7 padding
+    pad_len = 16 - (len(api_key) % 16)
+    padded = api_key + chr(pad_len) * pad_len
+
+    ciphertext = cipher.encrypt(padded.encode())
+
+    data = {
+        "encrypted": True,
+        "salt": base64.b64encode(salt).decode(),
+        "iv": base64.b64encode(iv).decode(),
+        "cipher": base64.b64encode(ciphertext).decode()
+    }
+
     async with aiofiles.open(key_path, "w") as f:
-        await f.write(api_key)
+        await f.write(json.dumps(data))
+
     return key_path
 
+
 async def load_api_key() -> str | None:
+    """
+    Load API key. If encrypted, ask for password and decrypt.
+    If plaintext, return raw content.
+    """
     key_path = SOURCE_DIR / "morrenus_key.enc"
     if not key_path.exists():
         return None
+
     async with aiofiles.open(key_path, "r") as f:
-        return await f.read()
+        content = await f.read()
+
+    # Detect encrypted JSON format
+    if content.strip().startswith("{"):
+        data = json.loads(content)
+        if not data.get("encrypted"):
+            return None
+
+        salt = base64.b64decode(data["salt"])
+        iv = base64.b64decode(data["iv"])
+        ciphertext = base64.b64decode(data["cipher"])
+
+        from getpass import getpass
+        password = getpass("Enter password to decrypt Morrenus key: ")
+
+        aes_key = PBKDF2(password, salt, dkLen=32, count=200000)
+        cipher = AES.new(aes_key, AES.MODE_CBC, iv)
+
+        decrypted = cipher.decrypt(ciphertext)
+
+        pad_len = decrypted[-1]
+        decrypted = decrypted[:-pad_len]
+
+        return decrypted.decode()
+
+    # PLAINTEXT
+    return content
+
+# =============================================================================
+# REST OF YOUR SCRIPT (unchanged)
+# =============================================================================
 
 async def check_health() -> bool:
     url = "https://manifest.morrenus.xyz/api/v1/health"
@@ -64,7 +142,7 @@ async def download_manifest(api_key: str, app_id: str):
     zip_path = SOURCE_DIR / f"{app_id}.zip"
     async with aiofiles.open(zip_path, "wb") as f:
         await f.write(r.content)
-    # Extract and remove old contents
+
     with zipfile.ZipFile(zip_path, "r") as zf:
         for member in zf.namelist():
             target_path = SOURCE_DIR / member
@@ -80,7 +158,6 @@ async def download_manifest(api_key: str, app_id: str):
     return True
 
 async def morrenus_fetch(app_id: str) -> bool:
-    # Load API key if previously saved
     api_key = await load_api_key()
 
     if not api_key:
@@ -89,7 +166,6 @@ async def morrenus_fetch(app_id: str) -> bool:
             print(f"{Fore.YELLOW}Skipping Morrenus as no API key provided.")
             return False
 
-        # Ask for password only if API key is provided
         from getpass import getpass
         password = getpass("Enter password to encrypt API key (leave empty to store plaintext): ")
         await save_api_key(api_key, password)
