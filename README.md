@@ -7,6 +7,10 @@ A menu for various tools and automation scripts for Steam on linux.
 curl -fsSL https://raw.githubusercontent.com/dim-ghub/Vapor/refs/heads/main/Installer.sh | bash
 ```
 
+Sometimes it wont download the released binary which is required, so check for its existence at `~/.local/share/Vapor/DepotDownloaderMod`
+
+If not there, grab it from releases and put it in the folder.
+
 ## Dependencies:
 
 `curl jq unrar python3 python3-venv tk`
