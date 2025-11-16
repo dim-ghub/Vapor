@@ -17,9 +17,9 @@ fi
 # -------------------------------
 # Detect installed games
 # -------------------------------
-declare -A GAMES_PATH      # folder_name -> folder_path
-declare -A GAME_APPID      # folder_name -> AppID
-declare -a GAME_NAMES      # array of folder names
+declare -A GAMES_PATH
+declare -A GAME_APPID
+declare -a GAME_NAMES
 
 for LIB in "${STEAM_LIBS[@]}"; do
     COMMON_DIR="$LIB/common"
@@ -50,8 +50,8 @@ fi
 IFS=$'\n' SORTED_GAMES=($(sort <<<"${GAME_NAMES[*]}"))
 unset IFS
 
-declare -a APPIDS  # store APPIDs for selection
-declare -a DISPLAY_NAMES  # folder names for display
+declare -a APPIDS
+declare -a DISPLAY_NAMES
 
 echo "Installed games:"
 i=1
@@ -63,7 +63,6 @@ for FOLDER_NAME in "${SORTED_GAMES[@]}"; do
     ((i++))
 done
 
-# User selection
 read -rp "Select a game by number: " opt
 if ! [[ "$opt" =~ ^[0-9]+$ ]] || ((opt < 1 || opt > ${#APPIDS[@]})); then
     echo "Invalid selection"
@@ -99,7 +98,6 @@ for URL in "${FIX_URLS[@]}"; do
         7z x "$TMP_ZIP" -o"$TMP_DIR" -y >/dev/null
         rm "$TMP_ZIP"
 
-        # Merge files into game folder
         TOP_LEVEL_ITEMS=("$TMP_DIR"/*)
         if [[ ${#TOP_LEVEL_ITEMS[@]} -eq 1 && -d "${TOP_LEVEL_ITEMS[0]}" ]]; then
             rsync -a "${TOP_LEVEL_ITEMS[0]}/" "$GAME_DIR"/
@@ -120,22 +118,50 @@ for URL in "${FIX_URLS[@]}"; do
     fi
 done
 
-# Cleanup temp folder
 rmdir "$TMP_DIR"
 
 echo "All OnlineFix files applied to: $GAME_DIR"
+echo
+echo "Applying permanent Wine DLL overrides…"
+
+# --------------------------------------------------------
+# apply DLL overrides to prefix
+# --------------------------------------------------------
+
+PROTON_PREFIX="$HOME/.local/share/Steam/steamapps/compatdata/$SELECTED_APPID/pfx"
+
+if [[ -d "$PROTON_PREFIX" ]]; then
+    WINEPREFIX="$PROTON_PREFIX"
+    echo "Detected Proton prefix: $WINEPREFIX"
+else
+    echo "ERROR: No Proton prefix found for this game:"
+    echo "  $PROTON_PREFIX"
+    echo
+    echo "Cannot apply DLL overrides."
+    exit 1
+fi
+
+export WINEPREFIX
+echo "Using prefix: $WINEPREFIX"
+
+declare -A DLLS=(
+    ["OnlineFix64"]="n"
+    ["SteamOverlay64"]="n"
+    ["winmm"]="n,b"
+    ["dnet"]="n"
+    ["steam_api64"]="n"
+    ["winhttp"]="n,b"
+)
+
+for DLL in "${!DLLS[@]}"; do
+    VALUE="${DLLS[$DLL]}"
+    echo " → Setting $DLL = $VALUE"
+    wine reg add "HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides" /v "$DLL" /d "$VALUE" /f >/dev/null
+done
 
 echo
-echo "====================================================================="
-echo "IMPORTANT:"
-echo "The OnlineFix launch options cannot be applied automatically."
-echo
-echo "Please do the following manually for $GAME_NAME (AppID $SELECTED_APPID):"
-echo
-echo "1) Open Steam."
-echo "2) Right-click '$GAME_NAME' → Properties → Launch Options."
-echo "3) Paste the following:"
-echo
-echo 'WINEDLLOVERRIDES="OnlineFix64=n;SteamOverlay64=n;winmm=n,b;dnet=n;steam_api64=n;winhttp=n,b" %command%'
-echo
-echo "====================================================================="
+echo "=============================================================="
+echo "DLL overrides applied inside the Wine prefix:"
+echo "$WINEPREFIX"
+echo "=============================================================="
+echo "Done."
