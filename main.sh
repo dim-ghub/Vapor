@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 set -e
+clear
+
+# --- FLAG HANDLING ---
+SKIP_INTRO=0
+NOSOUND=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --skip-intro) SKIP_INTRO=1 ;;
+        --nosound) NOSOUND=1 ;;
+        *) echo "Unknown option: $arg"; exit 1 ;;
+    esac
+done
 
 # Function to print text column by column
 type_column_by_column() {
@@ -18,10 +31,12 @@ type_column_by_column() {
 
 # --- SOUND FUNCTIONS ---
 play_select_sound() {
+    [[ $NOSOUND -eq 1 ]] && return
     mpv --no-video --quiet --no-terminal ~/.local/share/Vapor/assets/select.mp3 &
 }
 
 start_theme_loop() {
+    [[ $NOSOUND -eq 1 ]] && return
     while true; do
         mpv --no-video --quiet --no-terminal ~/.local/share/Vapor/assets/theme.mp3
     done &
@@ -29,15 +44,18 @@ start_theme_loop() {
 }
 
 stop_theme_loop() {
+    [[ $NOSOUND -eq 1 ]] && return
     if [[ -n "$THEME_PID" ]]; then
         kill "$THEME_PID" 2>/dev/null || true
     fi
 }
 
-# First huge banner
-mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
-sleep 0.5
-cat <<'EOF'
+# --- BANNERS ---
+if [[ $SKIP_INTRO -ne 1 ]]; then
+    # First huge banner
+    [[ $NOSOUND -ne 1 ]] && mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
+    sleep 0.5
+    cat <<'EOF'
  █     █░▓█████  ██▓     ▄████▄   ▒█████   ███▄ ▄███▓▓█████ 
 ▓█░ █ ░█░▓█   ▀ ▓██▒    ▒██▀ ▀█  ▒██▒  ██▒▓██▒▀█▀ ██▒▓█   ▀ 
 ▒█░ █ ░█ ▒███   ▒██░    ▒▓█    ▄ ▒██░  ██▒▓██    ▓██░▒███   
@@ -49,14 +67,13 @@ cat <<'EOF'
     ░       ░  ░    ░  ░░ ░          ░ ░         ░      ░  ░
                         ░                                   
 EOF
+    sleep 1.5
+    clear
 
-sleep 1.5
-clear
-
-# Second smaller banner
-mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
-sleep 0.5
-cat <<'EOF'
+    # Second smaller banner
+    [[ $NOSOUND -ne 1 ]] && mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
+    sleep 0.5
+    cat <<'EOF'
 ▄▄▄█████▓ ▒█████  
 ▓  ██▒ ▓▒▒██▒  ██▒
 ▒ ▓██░ ▒░▒██░  ██▒
@@ -67,12 +84,11 @@ cat <<'EOF'
   ░      ░ ░ ░ ▒  
              ░ ░  
 EOF
+    sleep 1.5
+    clear
 
-sleep 1.5
-clear
-
-# Final banner
-FINAL_BANNER='░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░  
+    # Final banner
+    FINAL_BANNER='░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░  
 ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
  ░▒▓█▓▒▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
  ░▒▓█▓▒▒▓█▓▒░░▒▓████████▓▒░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓███████▓▒░  
@@ -80,9 +96,9 @@ FINAL_BANNER='░▒▓█▓▒░░▒▓█▓▒░░▒▓█████
   ░▒▓█▓▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
    ░▒▓██▓▒░  ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░       ░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
                                                                    '
-
-mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/2.mp3 &
-type_column_by_column "$FINAL_BANNER" 0.002
+    [[ $NOSOUND -ne 1 ]] && mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/2.mp3 &
+    type_column_by_column "$FINAL_BANNER" 0.002
+fi
 
 echo
 echo "================ Menu ================"
