@@ -28,7 +28,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 lock = asyncio.Lock()
 client = httpx.AsyncClient(trust_env=True, verify=False)
 
-DEPOTDOWNLOADER = "DepotDownloaderMod"
+DEPOTDOWNLOADER = "~/.local/share/Vapor/DepotDownloaderMod"
 DEPOTDOWNLOADER_ARGS = "-max-downloads 256 -verify-all"
 
 DEFAULT_CONFIG = {
