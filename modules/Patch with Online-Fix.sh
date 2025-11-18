@@ -1,167 +1,106 @@
 #!/usr/bin/env bash
-set -e
-clear
+set -euo pipefail
 
-# -------------------------------
-# Find Steam libraries
-# -------------------------------
-STEAM_LIBS=("$HOME/.local/share/Steam/steamapps")
-if [[ -f "$HOME/.local/share/Steam/config/config.vdf" ]]; then
-    while read -r line; do
-        if [[ "$line" =~ \"Path\"\ *\"(.+)\" ]]; then
-            STEAM_LIBS+=("${BASH_REMATCH[1]}/steamapps")
+CONFIG_FILE="$HOME/.config/SLSsteam/config.yaml"
+LIBRARYVDF="$HOME/.local/share/Steam/steamapps/libraryfolders.vdf"
+DEFAULT_LIB="$HOME/.local/share/Steam/steamapps"
+
+echo "Reading Steam library folders from: $LIBRARYVDF"
+
+STEAM_LIBS=()
+
+# Always include default library
+[[ -d "$DEFAULT_LIB" ]] && STEAM_LIBS+=("$DEFAULT_LIB")
+
+# Parse libraryfolders.vdf
+if [[ -f "$LIBRARYVDF" ]]; then
+    while IFS= read -r line; do
+        if [[ $line =~ \"path\"[[:space:]]*\"([^\"]+)\" ]]; then
+            path="${BASH_REMATCH[1]}/steamapps"
+            [[ -d "$path" ]] && STEAM_LIBS+=("$path")
         fi
-    done < <(grep '"Path"' "$HOME/.local/share/Steam/config/config.vdf")
+    done < "$LIBRARYVDF"
 fi
 
-# -------------------------------
-# Detect installed games
-# -------------------------------
-declare -A GAMES_PATH
-declare -A GAME_APPID
-declare -a GAME_NAMES
+# Deduplicate libraries
+mapfile -t STEAM_LIBS < <(printf "%s\n" "${STEAM_LIBS[@]}" | awk '!seen[$0]++')
 
-for LIB in "${STEAM_LIBS[@]}"; do
-    COMMON_DIR="$LIB/common"
-    [[ -d "$COMMON_DIR" ]] || continue
+echo "Detected Steam libraries:"
+printf " - %s\n" "${STEAM_LIBS[@]}"
+echo ""
 
-    for ACF in "$LIB"/appmanifest_*.acf; do
-        [[ -f "$ACF" ]] || continue
-        APPID=$(basename "$ACF" | sed -E 's/appmanifest_([0-9]+)\.acf/\1/')
-        INSTALLDIR=$(grep '"installdir"' "$ACF" | head -n1 | sed -E 's/.*"\s*installdir\s*"\s*"(.+)"/\1/')
-        [[ -z "$INSTALLDIR" ]] && continue
-        GAME_DIR="$COMMON_DIR/$INSTALLDIR"
-        [[ -d "$GAME_DIR" ]] || continue
+# Collect games (installdir -> appid), hide duplicates
+declare -A GAME_MAP
 
-        GAMES_PATH["$INSTALLDIR"]="$GAME_DIR"
-        GAME_APPID["$INSTALLDIR"]="$APPID"
-        GAME_NAMES+=("$INSTALLDIR")
+for lib in "${STEAM_LIBS[@]}"; do
+    shopt -s nullglob
+    for acf in "$lib"/appmanifest_*.acf; do
+        [[ -f "$acf" ]] || continue
+        appid=$(basename "$acf" | grep -o '[0-9]\+')
+        installdir=$(grep -m1 '"installdir"' "$acf" | sed -E 's/.*"installdir"[[:space:]]*"([^"]+)".*/\1/')
+        [[ -z "$installdir" ]] && installdir="App_$appid"
+        [[ -z "${GAME_MAP[$installdir]+x}" ]] && GAME_MAP["$installdir"]="$appid"
     done
+    shopt -u nullglob
 done
 
-if [[ ${#GAME_NAMES[@]} -eq 0 ]]; then
-    echo "No installed Steam games found."
+if [[ ${#GAME_MAP[@]} -eq 0 ]]; then
+    echo "No installed games found."
     exit 1
 fi
 
-# -------------------------------
-# Display installed games
-# -------------------------------
-IFS=$'\n' SORTED_GAMES=($(sort <<<"${GAME_NAMES[*]}"))
-unset IFS
+# Picker
+GAME_LIST=("${!GAME_MAP[@]}")
+echo "Select a game to add to FakeAppIds:"
 
-declare -a APPIDS
-declare -a DISPLAY_NAMES
-
-echo "Installed games:"
-i=1
-for FOLDER_NAME in "${SORTED_GAMES[@]}"; do
-    APPID="${GAME_APPID[$FOLDER_NAME]}"
-    echo "$i) $FOLDER_NAME"
-    DISPLAY_NAMES[i-1]="$FOLDER_NAME"
-    APPIDS[i-1]="$APPID"
-    ((i++))
-done
-
-read -rp "Select a game by number: " opt
-if ! [[ "$opt" =~ ^[0-9]+$ ]] || ((opt < 1 || opt > ${#APPIDS[@]})); then
-    echo "Invalid selection"
-    exit 1
-fi
-
-SELECTED_APPID="${APPIDS[opt-1]}"
-GAME_NAME="${DISPLAY_NAMES[opt-1]}"
-GAME_DIR="${GAMES_PATH[$GAME_NAME]}"
-
-echo "Selected: $GAME_NAME → $GAME_DIR"
-
-# -------------------------------
-# Download & apply fix zips
-# -------------------------------
-TMP_DIR=$(mktemp -d)
-echo "Temporary extraction folder: $TMP_DIR"
-
-FIX_URLS=(
-    "https://github.com/ShayneVi/OnlineFix1/releases/download/fixes/${SELECTED_APPID}.zip"
-    "https://github.com/ShayneVi/OnlineFix2/releases/download/fixes/${SELECTED_APPID}.zip"
-    "https://github.com/ShayneVi/Bypasses/releases/download/v1.0/${SELECTED_APPID}.zip"
-)
-
-for URL in "${FIX_URLS[@]}"; do
-    echo "Checking: $URL"
-    if curl --head --silent --fail "$URL" >/dev/null; then
-        echo "Downloading $URL..."
-        TMP_ZIP="$TMP_DIR/temp.zip"
-        curl -L -o "$TMP_ZIP" "$URL"
-
-        echo "Extracting $URL..."
-        7z x "$TMP_ZIP" -o"$TMP_DIR" -y >/dev/null
-        rm "$TMP_ZIP"
-
-        TOP_LEVEL_ITEMS=("$TMP_DIR"/*)
-        if [[ ${#TOP_LEVEL_ITEMS[@]} -eq 1 && -d "${TOP_LEVEL_ITEMS[0]}" ]]; then
-            rsync -a "${TOP_LEVEL_ITEMS[0]}/" "$GAME_DIR"/
-        else
-            for item in "${TOP_LEVEL_ITEMS[@]}"; do
-                if [[ -d "$item" ]]; then
-                    rsync -a "$item"/ "$GAME_DIR"/
-                else
-                    cp -a "$item" "$GAME_DIR"/
-                fi
-            done
-        fi
-
-        rm -rf "$TMP_DIR"/*
-        echo "Files from this zip added to game directory."
-    else
-        echo "Not found, skipping."
-    fi
-done
-
-rmdir "$TMP_DIR"
-
-echo "All OnlineFix files applied to: $GAME_DIR"
-echo
-echo "Applying permanent Wine DLL overrides…"
-
-# --------------------------------------------------------
-# apply DLL overrides to prefix
-# --------------------------------------------------------
-
-PROTON_PREFIX="$HOME/.local/share/Steam/steamapps/compatdata/$SELECTED_APPID/pfx"
-
-if [[ -d "$PROTON_PREFIX" ]]; then
-    WINEPREFIX="$PROTON_PREFIX"
-    echo "Detected Proton prefix: $WINEPREFIX"
+if command -v fzf >/dev/null 2>&1; then
+    CHOICE=$(printf "%s\n" "${GAME_LIST[@]}" | fzf --height=20 --reverse --prompt="Game: ")
+    [[ -z "$CHOICE" ]] && { echo "No selection"; exit 1; }
 else
-    echo "ERROR: No Proton prefix found for this game:"
-    echo "  $PROTON_PREFIX"
-    echo
-    echo "Cannot apply DLL overrides."
-    exit 1
+    i=1
+    for g in "${GAME_LIST[@]}"; do
+        printf "%3d) %s\n" "$i" "$g"
+        ((i++))
+    done
+    read -rp "Choose number: " num
+    if ! [[ $num =~ ^[0-9]+$ ]] || (( num < 1 || num > ${#GAME_LIST[@]} )); then
+        echo "Invalid selection."
+        exit 1
+    fi
+    CHOICE="${GAME_LIST[$((num-1))]}"
 fi
 
-export WINEPREFIX
-echo "Using prefix: $WINEPREFIX"
+APPID="${GAME_MAP[$CHOICE]}"
+echo ""
+echo "Selected: $CHOICE (AppID: $APPID)"
+echo ""
 
-declare -A DLLS=(
-    ["OnlineFix64"]="n"
-    ["SteamOverlay64"]="n"
-    ["winmm"]="n,b"
-    ["dnet"]="n"
-    ["steam_api64"]="n"
-    ["winhttp"]="n,b"
-)
+# Ensure config exists
+mkdir -p "$(dirname "$CONFIG_FILE")"
+[[ -f "$CONFIG_FILE" ]] || echo "FakeAppIds:" > "$CONFIG_FILE"
 
-for DLL in "${!DLLS[@]}"; do
-    VALUE="${DLLS[$DLL]}"
-    echo " → Setting $DLL = $VALUE"
-    wine reg add "HKEY_CURRENT_USER\\Software\\Wine\\DllOverrides" /v "$DLL" /d "$VALUE" /f >/dev/null
-done
+# Ensure FakeAppIds: section exists
+if ! grep -qE '^\s*FakeAppIds:' "$CONFIG_FILE"; then
+    echo -e "\nFakeAppIds:" >> "$CONFIG_FILE"
+fi
 
-echo
-echo "=============================================================="
-echo "DLL overrides applied inside the Wine prefix:"
-echo "$WINEPREFIX"
-echo "=============================================================="
-echo "Done."
+# Check if mapping exists
+if grep -qE "^[[:space:]]*$APPID:[[:space:]]*480[[:space:]]*$" "$CONFIG_FILE"; then
+    echo "Mapping already exists. Nothing to do."
+    exit 0
+fi
+
+# Insert mapping directly under FakeAppIds:
+# Find line number of FakeAppIds:
+LINE_NUM=$(grep -n '^\s*FakeAppIds:' "$CONFIG_FILE" | cut -d: -f1)
+
+# If line found, insert mapping after it
+if [[ -n "$LINE_NUM" ]]; then
+    sed -i "$((LINE_NUM+1))i \  $APPID: 480" "$CONFIG_FILE"
+else
+    # fallback: append at end
+    echo "  $APPID: 480" >> "$CONFIG_FILE"
+fi
+
+echo "Added mapping under FakeAppIds:"
+echo "  $APPID: 480"
