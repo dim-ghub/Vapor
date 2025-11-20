@@ -161,6 +161,115 @@ if [[ "$MODULE_NAME" == "Download a game.sh" ]]; then
     start_theme_loop
 fi
 
+MODULE_ARGS=()
+[[ $SKIP_INTRO -eq 1 ]] && MODULE_ARGS+=("--skip-intro")
+[[ $NOSOUND -eq 1 ]] && MODULE_ARGS+=("--nosound")
+
+bash "$SELECTED_MODULE" "${MODULE_ARGS[@]}"
+stop_theme_loop
+
+echo
+read -rp "Press Enter to exit..."
+}
+
+start_theme_loop() {
+    [[ $NOSOUND -eq 1 ]] && return
+    while true; do
+        mpv --no-video --quiet --no-terminal ~/.local/share/Vapor/assets/theme.mp3
+    done &
+    THEME_PID=$!
+}
+
+stop_theme_loop() {
+    [[ $NOSOUND -eq 1 ]] && return
+    if [[ -n "$THEME_PID" ]]; then
+        kill "$THEME_PID" 2>/dev/null || true
+    fi
+}
+
+# ------------------------------------------------------------
+# BANNERS
+# ------------------------------------------------------------
+if [[ $SKIP_INTRO -ne 1 ]]; then
+    [[ $NOSOUND -ne 1 ]] && mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
+    sleep 0.5
+    cat <<'EOF'
+ █     █░▓█████  ██▓     ▄████▄   ▒█████   ███▄ ▄███▓▓█████ 
+▓█░ █ ░█░▓█   ▀ ▓██▒    ▒██▀ ▀█  ▒██▒  ██▒▓██▒▀█▀ ██▒▓█   ▀ 
+▒█░ █ ░█ ▒███   ▒██░    ▒▓█    ▄ ▒██░  ██▒▓██    ▓██░▒███   
+░█░ █ ░█ ▒▓█  ▄ ▒██░    ▒▓▓▄ ▄██▒▒██   ██░▒██    ▒██ ▒▓█  ▄ 
+░░██▒██▓ ░▒████▒░██████▒▒ ▓███▀ ░░ ████▓▒░▒██▒   ░██▒░▒████▒
+░ ▓░▒ ▒  ░░ ▒░ ░░ ▒░▓  ░░ ░▒ ▒  ░░ ▒░▒░▒░ ░ ▒░   ░  ░░░ ▒░ ░
+  ▒ ░ ░   ░ ░  ░░ ░ ▒  ░  ░  ▒     ░ ▒ ▒░ ░  ░      ░ ░ ░  ░
+  ░   ░     ░     ░ ░   ░        ░ ░ ░ ▒  ░      ░      ░   
+    ░       ░  ░    ░  ░░ ░          ░ ░         ░      ░  ░
+                        ░                                   
+EOF
+    sleep 1.5
+    clear
+
+    [[ $NOSOUND -ne 1 ]] && mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
+    sleep 0.5
+    cat <<'EOF'
+▄▄▄█████▓ ▒█████  
+▓  ██▒ ▓▒▒██▒  ██▒
+▒ ▓██░ ▒░▒██░  ██▒
+░ ▓██▓ ░ ▒██   ██░
+  ▒██▒ ░ ░ ████▓▒░
+  ▒ ░░   ░ ▒░▒░▒░ 
+    ░      ░ ▒ ▒░ 
+  ░      ░ ░ ░ ▒  
+             ░ ░  
+EOF
+    sleep 1.5
+    clear
+
+    FINAL_BANNER='
+░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░  
+░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+ ░▒▓█▓▒▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+ ░▒▓█▓▒▒▓█▓▒░░▒▓████████▓▒░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓███████▓▒░  
+  ░▒▓█▓▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+  ░▒▓█▓▓█▓▒░ ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+   ░▒▓██▓▒░  ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░       ░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░ '
+    [[ $NOSOUND -ne 1 ]] && mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/2.mp3 &
+    type_column_by_column "$FINAL_BANNER" 0.002
+fi
+
+echo
+echo "================ Menu ================"
+
+MODULES_DIR="$HOME/.local/share/Vapor/modules"
+mapfile -t MODULES < <(find "$MODULES_DIR" -maxdepth 1 -type f -name "*.sh" | sort)
+
+if [[ ${#MODULES[@]} -eq 0 ]]; then
+    echo "No modules found in $MODULES_DIR"
+    exit 1
+fi
+
+for i in "${!MODULES[@]}"; do
+    script_name=$(basename "${MODULES[i]}" .sh)
+    echo "$((i+1))) $script_name"
+done
+echo "======================================"
+
+read -rp "Select an option: " opt
+play_select_sound
+
+if ! [[ "$opt" =~ ^[0-9]+$ ]] || ((opt < 1 || opt > ${#MODULES[@]})); then
+    echo "Invalid option"
+    exit 1
+fi
+
+SELECTED_MODULE="${MODULES[opt-1]}"
+MODULE_NAME=$(basename "$SELECTED_MODULE")
+
+echo "Running $MODULE_NAME..."
+
+if [[ "$MODULE_NAME" == "Download a game.sh" ]]; then
+    start_theme_loop
+fi
+
 bash "$SELECTED_MODULE"
 stop_theme_loop
 
