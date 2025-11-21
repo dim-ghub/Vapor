@@ -130,7 +130,6 @@ echo "===== Running Vapor Depot Downloader for AppID: $APPID ====="
 
 if [[ ! -d "$VENV_DIR" ]]; then
     echo "Error: Virtual environment not found at $VENV_DIR."
-    echo "Please run the main Python script first to create it."
     exit 1
 fi
 
