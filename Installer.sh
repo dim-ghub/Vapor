@@ -48,5 +48,8 @@ chmod +x "$INSTALL_DIR/setup.sh" "$INSTALL_DIR/main.sh" "$INSTALL_DIR/storage_de
 echo "Running setup script to prepare virtual environment and dependencies..."
 bash "$INSTALL_DIR/setup.sh"
 
+echo "Installing Vapor to path, please input your password."
+sudo ln -s ~/.local/share/Vapor/main.sh /usr/bin/Vapor
+
 echo "Installation and setup complete!"
 echo "You can now launch Vapor from your application menu."
