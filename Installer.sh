@@ -19,7 +19,7 @@ else
 fi
 
 echo "Downloading DepotDownloaderMod..."
-curl -L "https://github.com/dim-ghub/Vapor/releases/download/Binaries/DepotDownloaderMod" -o "$HOME/.local/share/Vapor/DepotDownloaderMod"
+curl -L "https://github.com/dim-ghub/Vapor/releases/download/Binaries/DepotDownloaderMod" -o "$INSTALL_DIR/DepotDownloaderMod"
 
 if [ ! -s "$INSTALL_DIR/DepotDownloaderMod" ]; then
     echo "Error: Failed to download DepotDownloaderMod"
@@ -48,8 +48,12 @@ chmod +x "$INSTALL_DIR/setup.sh" "$INSTALL_DIR/main.sh" "$INSTALL_DIR/storage_de
 echo "Running setup script to prepare virtual environment and dependencies..."
 bash "$INSTALL_DIR/setup.sh"
 
-echo "Installing Vapor to path, please input your password."
-sudo ln -s ~/.local/share/Vapor/main.sh /usr/bin/Vapor
+if command -v Vapor >/dev/null 2>&1; then
+    echo "Vapor is already installed in PATH. Skipping symlink creation."
+else
+    echo "Installing Vapor to path, please input your password."
+    sudo ln -s "$INSTALL_DIR/main.sh" /usr/bin/Vapor
+fi
 
 echo "Installation and setup complete!"
 echo "You can now launch Vapor from your application menu."
