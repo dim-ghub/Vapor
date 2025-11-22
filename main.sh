@@ -5,9 +5,6 @@ clear
 CONFIG_DIR="$HOME/.local/share/Vapor"
 CONFIG_FILE="$CONFIG_DIR/vapor-conf.json"
 
-# ------------------------------------------------------------
-# CONFIG HANDLING
-# ------------------------------------------------------------
 load_config() {
     if [[ ! -f "$CONFIG_FILE" ]]; then
         mkdir -p "$CONFIG_DIR"
@@ -28,9 +25,6 @@ EOF
 
 load_config
 
-# ------------------------------------------------------------
-# FLAGS
-# ------------------------------------------------------------
 for arg in "$@"; do
     case "$arg" in
         --skip-intro) SKIP_INTRO=1 ;;
@@ -39,9 +33,6 @@ for arg in "$@"; do
     esac
 done
 
-# ------------------------------------------------------------
-# SOUND / TEXT FUNCTIONS
-# ------------------------------------------------------------
 type_column_by_column() {
     local text="$1"
     local delay="${2:-0.01}"
@@ -61,9 +52,6 @@ play_select_sound() {
     mpv --no-video --quiet --no-terminal ~/.local/share/Vapor/assets/select.mp3 &
 }
 
-# ------------------------------------------------------------
-# BANNERS
-# ------------------------------------------------------------
 if [[ $SKIP_INTRO -ne 1 ]]; then
     [[ $NOSOUND -ne 1 ]] && mpv --no-video --really-quiet --no-terminal ~/.local/share/Vapor/assets/1.mp3 &
     sleep 0.5
