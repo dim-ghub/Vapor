@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-# Ensure script is run interactively
 if [[ ! -t 0 ]]; then
     echo "This script must be run interactively!"
     exit 1
 fi
 
-# Start looping theme music
 THEME="$HOME/.local/share/Vapor/assets/theme.mp3"
 if command -v mpv >/dev/null; then
     mpv --loop=inf --no-video --volume=70 "$THEME" >/dev/null 2>&1 &
@@ -15,13 +13,12 @@ if command -v mpv >/dev/null; then
 
     cleanup_theme() {
         kill "$MPV_PID" 2>/dev/null
-        exit 130   # ensures script exits immediately on Ctrl-C
+        exit 130
     }
 
     trap cleanup_theme EXIT INT TERM HUP
 fi
 
-# Switch to Vapor directory
 VAPOR_DIR="$HOME/.local/share/Vapor"
 cd "$VAPOR_DIR" || { echo "Failed to enter $VAPOR_DIR"; exit 1; }
 
@@ -31,7 +28,6 @@ SCRIPT="$VAPOR_DIR/storage_depotdownloadermod.py"
 
 SKIP_INTRO=0
 
-# --- FLAG HANDLING ---
 for arg in "$@"; do
     case "$arg" in
         --skip-intro)
@@ -40,7 +36,6 @@ for arg in "$@"; do
     esac
 done
 
-# Function to search Steam for a game by name
 search_steam() {
     local query="$1"
     echo "Searching Steam for '$query'..."
@@ -124,7 +119,6 @@ if [[ $SKIP_INTRO -eq 0 ]]; then
 EOF
 fi
 
-# Prompt user for AppID or name
 read -rp "Enter the Steam AppID or game name: " input
 if [[ "$input" =~ ^[0-9]+$ ]]; then
     APPID="$input"
@@ -133,7 +127,6 @@ else
 fi
 echo "Selected AppID: $APPID"
 
-# Detect Steam libraries
 STEAM_ROOT="$HOME/.local/share/Steam"
 LIBRARY_PATHS=("$STEAM_ROOT/steamapps")
 if [[ -f "$STEAM_ROOT/steamapps/libraryfolders.vdf" ]]; then
@@ -145,7 +138,6 @@ if [[ -f "$STEAM_ROOT/steamapps/libraryfolders.vdf" ]]; then
 fi
 mapfile -t LIBRARY_PATHS < <(printf '%s\n' "${LIBRARY_PATHS[@]}" | awk '!seen[$0]++')
 
-# Choose library
 if [[ ${#LIBRARY_PATHS[@]} -eq 1 ]]; then
     STEAM_LIB="${LIBRARY_PATHS[0]}"
 else
@@ -158,7 +150,6 @@ else
     done
 fi
 
-# Run DepotDownloader Python script
 if [[ ! -d "$VENV_DIR" ]]; then
     echo "Error: Virtual environment not found at $VENV_DIR."
     exit 1
@@ -170,11 +161,9 @@ echo "===== Running Vapor Depot Downloader for AppID: $APPID ====="
 SH_FILE="${APPID}.sh"
 
 if [[ -f "$SH_FILE" ]]; then
-    # Create temporary depot folder in Steam library
     TEMP_DEPOT_DIR="$STEAM_LIB/depotdownloader"
     mkdir -p "$TEMP_DEPOT_DIR/depots"
 
-    # Move generated files to temp folder
     mv "$SH_FILE" "$TEMP_DEPOT_DIR/"
     mv *.manifest *.key "$TEMP_DEPOT_DIR/" 2>/dev/null || true
 
@@ -185,7 +174,6 @@ if [[ -f "$SH_FILE" ]]; then
 
     DEPOT_BASE="$TEMP_DEPOT_DIR/depots"
 
-    # Flatten depots
     TOP_FOLDER=$(find "$DEPOT_BASE" -mindepth 1 -maxdepth 1 -type d ! -name ".*" | head -n 1)
     if [[ -z "$TOP_FOLDER" ]]; then
         echo "No folders found in $DEPOT_BASE"
@@ -203,25 +191,21 @@ if [[ -f "$SH_FILE" ]]; then
     done
     shopt -u dotglob
 
-    # Fetch official name
     API_URL="https://store.steampowered.com/api/appdetails?appids=$APPID"
     OFFICIAL_NAME=$(curl -s "$API_URL" | jq -r ".[\"$APPID\"].data.name // \"Game_$APPID\"")
     [[ -z "$OFFICIAL_NAME" || "$OFFICIAL_NAME" == "null" ]] && OFFICIAL_NAME="Game_$APPID"
     INSTALL_DIR_NAME=$(echo "$OFFICIAL_NAME" | tr '/:?*"<>|' '_')
 
-    # Rename top folder
     FINAL_FOLDER="$DEPOT_BASE/$INSTALL_DIR_NAME"
     mv "$TOP_FOLDER" "$FINAL_FOLDER"
     echo "===== Top folder renamed to $INSTALL_DIR_NAME ====="
 
-    # Move game files to Steam library
     INSTALL_DIR="$STEAM_LIB/common/$INSTALL_DIR_NAME"
     mkdir -p "$INSTALL_DIR"
 
     echo "===== Moving game files to Steam library folder ====="
     cp -r "$FINAL_FOLDER/"* "$INSTALL_DIR/"
 
-    # Generate appmanifest
     ACF_FILE="$STEAM_LIB/appmanifest_$APPID.acf"
     cat > "$ACF_FILE" <<EOF
 "AppState"
@@ -242,7 +226,6 @@ EOF
     echo "===== Game added to Steam library successfully! ====="
     echo "Install folder: $INSTALL_DIR"
 
-    # Clean up temp folder
     rm -rf "$TEMP_DEPOT_DIR"
 else
     echo "Error: Generated script $SH_FILE not found."
