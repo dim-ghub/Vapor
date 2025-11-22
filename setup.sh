@@ -4,7 +4,7 @@ set -e
 # Paths
 VENV_DIR="$HOME/.local/share/Vapor/venv"
 PYTHON_BIN="$VENV_DIR/bin/python"
-REQS_FILE="$PWD/requirements.txt"
+REQS_FILE="$HOME/.local/share/Vapor/requirements.txt"
 
 echo "===== Vapor Setup ====="
 
