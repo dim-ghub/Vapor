@@ -9,10 +9,8 @@ echo "Reading Steam library folders from: $LIBRARYVDF"
 
 STEAM_LIBS=()
 
-# Always include default library
 [[ -d "$DEFAULT_LIB" ]] && STEAM_LIBS+=("$DEFAULT_LIB")
 
-# Parse libraryfolders.vdf
 if [[ -f "$LIBRARYVDF" ]]; then
     while IFS= read -r line; do
         if [[ $line =~ \"path\"[[:space:]]*\"([^\"]+)\" ]]; then
@@ -22,14 +20,12 @@ if [[ -f "$LIBRARYVDF" ]]; then
     done < "$LIBRARYVDF"
 fi
 
-# Deduplicate libraries
 mapfile -t STEAM_LIBS < <(printf "%s\n" "${STEAM_LIBS[@]}" | awk '!seen[$0]++')
 
 echo "Detected Steam libraries:"
 printf " - %s\n" "${STEAM_LIBS[@]}"
 echo ""
 
-# Collect games (installdir -> appid), hide duplicates
 declare -A GAME_MAP
 
 for lib in "${STEAM_LIBS[@]}"; do
@@ -49,7 +45,6 @@ if [[ ${#GAME_MAP[@]} -eq 0 ]]; then
     exit 1
 fi
 
-# Picker
 GAME_LIST=("${!GAME_MAP[@]}")
 echo "Select a game to add to FakeAppIds:"
 
@@ -75,30 +70,23 @@ echo ""
 echo "Selected: $CHOICE (AppID: $APPID)"
 echo ""
 
-# Ensure config exists
 mkdir -p "$(dirname "$CONFIG_FILE")"
 [[ -f "$CONFIG_FILE" ]] || echo "FakeAppIds:" > "$CONFIG_FILE"
 
-# Ensure FakeAppIds: section exists
 if ! grep -qE '^\s*FakeAppIds:' "$CONFIG_FILE"; then
     echo -e "\nFakeAppIds:" >> "$CONFIG_FILE"
 fi
 
-# Check if mapping exists
 if grep -qE "^[[:space:]]*$APPID:[[:space:]]*480[[:space:]]*$" "$CONFIG_FILE"; then
     echo "Mapping already exists. Nothing to do."
     exit 0
 fi
 
-# Insert mapping directly under FakeAppIds:
-# Find line number of FakeAppIds:
 LINE_NUM=$(grep -n '^\s*FakeAppIds:' "$CONFIG_FILE" | cut -d: -f1)
 
-# If line found, insert mapping after it
 if [[ -n "$LINE_NUM" ]]; then
     sed -i "$((LINE_NUM+1))i \  $APPID: 480" "$CONFIG_FILE"
 else
-    # fallback: append at end
     echo "  $APPID: 480" >> "$CONFIG_FILE"
 fi
 
