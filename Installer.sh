@@ -43,7 +43,7 @@ else
 fi
 
 echo "Making scripts executable..."
-chmod +x "$INSTALL_DIR/setup.sh" "$INSTALL_DIR/main.sh" "$INSTALL_DIR/storage_depotdownloadermod.py"
+chmod +x "$INSTALL_DIR/setup.sh" "$INSTALL_DIR/main.sh" "$INSTALL_DIR/storage_depotdownloadermod.py" "$INSTALL_DIR/fitgirl-ddl"
 
 echo "Running setup script to prepare virtual environment and dependencies..."
 bash "$INSTALL_DIR/setup.sh"
