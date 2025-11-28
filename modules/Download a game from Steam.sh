@@ -6,8 +6,23 @@ if [[ ! -t 0 ]]; then
     exit 1
 fi
 
+SKIP_INTRO=0
+NOSOUND=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --skip-intro)
+            SKIP_INTRO=1
+            ;;
+        --nosound)
+            NOSOUND=1
+            ;;
+    esac
+done
+
 THEME="$HOME/.local/share/Vapor/assets/theme.mp3"
-if command -v mpv >/dev/null; then
+
+if [[ $NOSOUND -eq 0 && -f "$THEME" ]] && command -v mpv >/dev/null; then
     mpv --loop=inf --no-video --volume=70 "$THEME" >/dev/null 2>&1 &
     MPV_PID=$!
 
@@ -25,16 +40,6 @@ cd "$VAPOR_DIR" || { echo "Failed to enter $VAPOR_DIR"; exit 1; }
 VENV_DIR="$VAPOR_DIR/venv"
 PYTHON_BIN="$VENV_DIR/bin/python"
 SCRIPT="$VAPOR_DIR/storage_depotdownloadermod.py"
-
-SKIP_INTRO=0
-
-for arg in "$@"; do
-    case "$arg" in
-        --skip-intro)
-            SKIP_INTRO=1
-            ;;
-    esac
-done
 
 search_steam() {
     local query="$1"
@@ -225,6 +230,26 @@ EOF
 
     echo "===== Game added to Steam library successfully! ====="
     echo "Install folder: $INSTALL_DIR"
+
+    DESKTOP_DIR="$HOME/.local/share/applications"
+    DESKTOP_FILE="$DESKTOP_DIR/${INSTALL_DIR_NAME}.desktop"
+    mkdir -p "$DESKTOP_DIR"
+
+    cat > "$DESKTOP_FILE" <<EOF
+[Desktop Entry]
+Name=$OFFICIAL_NAME
+Comment=Play this game on Steam
+Exec=steam steam://rungameid/$APPID
+Icon=steam_icon_$APPID
+Terminal=false
+Type=Application
+Categories=Game;
+EOF
+
+    chmod +x "$DESKTOP_FILE"
+
+    echo "===== Created desktop entry ====="
+    echo "$DESKTOP_FILE"
 
     rm -rf "$TEMP_DEPOT_DIR"
 else
