@@ -106,4 +106,3 @@ else
 fi
 
 cd "$HOME" || exit 1
-rm -rf "$BASE_DIR"
