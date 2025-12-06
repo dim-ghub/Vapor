@@ -13,7 +13,7 @@ If not there, grab it from releases and put it in the folder.
 
 ## Dependencies:
 
-`curl jq unrar python3 python3-venv tk`
+`curl jq mpv git python3 python3-venv tk 7z`
 
 Obtain a morrenus api key at:
 https://manifest.morrenus.xyz/
