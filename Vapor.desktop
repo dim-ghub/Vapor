@@ -1,8 +1,8 @@
 [Desktop Entry]
 Categories=Game;Utility;
 Comment=Collection of tools for Steam
-Exec=bash /home/dim/.local/share/Vapor/main.sh
-Icon=/home/dim/.local/share/Vapor/assets/Vapor.svg
+Exec=
+Icon=
 Name=Vapor
 NoDisplay=false
 Path=
