@@ -1,4 +1,4 @@
-# Vapor
+# Vapor ( END OF LIFE )
 A menu for various tools and automation scripts for Steam on linux.
 
 ## For installation:
